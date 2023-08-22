@@ -108,13 +108,62 @@ def create_bars_and_xlabels(settings, data, ax1, ax3):
     return return_data
 
 
+def create_bars_and_xlabels_stacked(settings, data, ax1):
+
+    return_data = {"ax1": None, "rects1": None, "rects2": None, "rect1_label": "", "rect2_label": ""}
+    
+    print(data)
+    iops_r = data["read"]["y1_axis"]["data"]
+    iops_w = data["write"]["y1_axis"]["data"]
+    width = 0.9
+
+    color_r = "#a8ed63"
+    color_w = "#34bafa"
+
+    x_pos = np.arange(0, len(iops_r), 1)
+
+    rect1_label = "read"
+    rect2_label = "write"
+    rects1 = ax1.bar(x_pos, iops_r, width, color=color_r, label=rect1_label)
+    rects2 = ax1.bar(x_pos, iops_w, width, color=color_w, bottom=iops_r, label=rect2_label)
+    x_axis = data["read"]["x_axis"]
+
+    if "hostname_series" in data["read"].keys():
+        if data["read"]["hostname_series"]:
+            x_axis = format_hostname_labels(settings, data["read"])
+
+    ltest = np.arange(0, len(iops_r), 1)
+
+    ax1.set_ylabel(data["read"]["y1_axis"]["format"])
+    ax1.set_xlabel(settings["label"])
+    ax1.set_xticks(ltest)
+
+    set_max_yaxis(settings, [ax1])
+    
+    fontsize = calculate_font_size(settings, x_axis)
+    #print(fontsize)
+    if settings["graphtype"] == "compare_graph":
+        ax1.set_xticklabels(labels=x_axis, fontsize=fontsize)
+    elif settings["graphtype"] == "bargraph2d_qd" or settings["graphtype"] == "bargraph2d_nj":
+        ax1.set_xticklabels(labels=x_axis, fontsize=fontsize,)
+    else:
+        ax1.set_xticklabels(labels=x_axis, fontsize=fontsize, rotation=-50)
+
+    return_data["rects1"] = rects1
+    return_data["rects2"] = rects2
+    return_data["rect1_label"] = rect1_label
+    return_data["rect2_label"] = rect2_label
+    return_data["ax1"] = ax1
+    return_data["fontsize"] = fontsize
+    return return_data
+
+
 def chart_2dbarchart_jsonlogdata(settings, dataset):
     """This function is responsible for drawing iops/latency bars for a
     particular iodepth."""
     dataset_types = shared.get_dataset_types(dataset)
     data = shared.get_record_set(settings, dataset, dataset_types)
     fig, (ax1, ax2) = plt.subplots(nrows=2, gridspec_kw={"height_ratios": [7, 1]})
-    ax3 = ax1.twinx()
     fig.set_size_inches(10, 6)
     plt.margins(x=0.01)
     #
@@ -124,12 +173,10 @@ def chart_2dbarchart_jsonlogdata(settings, dataset):
 
     ax2.axis("off")
 
-    return_data = create_bars_and_xlabels(settings, data, ax1, ax3)
+    return_data = create_bars_and_xlabels_stacked(settings, data, ax1)
 
     rects1 = return_data["rects1"]
-    rects2 = return_data["rects2"]
     ax1 = return_data["ax1"]
-    ax3 = return_data["ax3"]
     fontsize = return_data["fontsize"]
 
     #
@@ -153,7 +200,6 @@ def chart_2dbarchart_jsonlogdata(settings, dataset):
     #
     # Labeling the top of the bars with their value
     shared.autolabel(rects1, ax1)
-    shared.autolabel(rects2, ax3)
     #
     # Draw the standard deviation table
     if settings["show_data"]:
@@ -171,14 +217,6 @@ def chart_2dbarchart_jsonlogdata(settings, dataset):
         tables.create_steadystate_table(settings, data, ax2, fontsize)
 
     #
-    # Create legend
-    ax2.legend(
-        (rects1[0], rects2[0]),
-        (data["y1_axis"]["format"], data["y2_axis"]["format"]),
-        loc="center left",
-        frameon=False,
-    )
-    #
     # Save graph to PNG file
     #
     supporting.save_png(settings, plt, fig)
@@ -192,22 +230,22 @@ def compchart_2dbarchart_jsonlogdata(settings, dataset):
     # pprint.pprint(data)
 
     fig, (ax1, ax2) = plt.subplots(nrows=2, gridspec_kw={"height_ratios": [7, 1]})
-    ax3 = ax1.twinx()
     fig.set_size_inches(10, 6)
     plt.margins(x=0.01)
 
     #
     # Puts in the credit source (often a name or url)
     supporting.plot_source(settings, plt, ax1)
-    supporting.plot_fio_version(settings, data["fio_version"][0], plt, ax2)
+    # supporting.plot_fio_version(settings, data["read"]["fio_version"][0], plt, ax2)
 
     ax2.axis("off")
 
-    return_data = create_bars_and_xlabels(settings, data, ax1, ax3)
+    return_data = create_bars_and_xlabels_stacked(settings, data, ax1)
     rects1 = return_data["rects1"]
     rects2 = return_data["rects2"]
+    rect1_label = return_data["rect1_label"]
+    rect2_label = return_data["rect2_label"]
     ax1 = return_data["ax1"]
-    ax3 = return_data["ax3"]
     #
     # Set title
     settings["type"] = ""
@@ -219,25 +257,13 @@ def compchart_2dbarchart_jsonlogdata(settings, dataset):
 
     #
     # Labeling the top of the bars with their value
-    shared.autolabel(rects1, ax1)
-    shared.autolabel(rects2, ax3)
-    fontsize = calculate_font_size(settings, data["x_axis"])
-
-    if settings["show_data"]:
-        tables.create_values_table(settings, data, ax2, fontsize)
-    else:
-        tables.create_stddev_table(settings, data, ax2, fontsize)
-
-    if settings["show_cpu"] and not settings["show_ss"]:
-        tables.create_cpu_table(settings, data, ax2, fontsize)
-
-    if settings["show_ss"] and not settings["show_cpu"]:
-        tables.create_steadystate_table(settings, data, ax2, fontsize)
+    # shared.autolabel(rects1, ax1)
+    fontsize = calculate_font_size(settings, data["read"]["x_axis"])
 
     # Create legend
     ax2.legend(
-        (rects1[0], rects2[0]),
-        (data["y1_axis"]["format"], data["y2_axis"]["format"]),
+        (rects1, rects2),
+        (rect1_label, rect2_label),
         loc="center left",
         frameon=False,
     )

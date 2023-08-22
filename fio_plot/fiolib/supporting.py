@@ -258,6 +258,12 @@ def process_dataset(settings, dataset):
                             scale_factors_bw.append(get_scale_factor_bw(record[rw]["yvalues"]))
                     #print(item["hostname"])
             if settings["draw_total"] and len(settings["filter"]) == 2:
+                if "xvalues" not in record["write"]:
+                    print(record)
+                    record["write"] = {}
+                    record["write"]["xvalues"] = record["read"]["xvalues"]
+                    record["write"]["yvalues"] = [0] * len(record["read"]["yvalues"])
+                    print(record)
                 readdata = record["read"]["yvalues"]
                 writedata = record["write"]["yvalues"]
                 record["total"] = {}

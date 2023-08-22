@@ -67,22 +67,31 @@ def merge_job_data_from_hosts(settings, hosts):
 
 def return_data_row(settings, record):
     mode = get_record_mode(settings)
-    data = get_json_mapping(mode, record)
+    if isinstance(mode, list):
+        data = [get_json_mapping(m, record) for m in mode]
+        print("BOTH")
+        print(data)
+    else:
+        data = get_json_mapping(mode, record)
     #print("=============")
     #print(data)
     return data
 
-def get_record_mode(settings): # any of the rw modes must be translated to read or write
+def get_record_mode(settings):
+    """May return a list if the filter contains both read/write.
+    Otherwise a single string.
+    """
     mapping = {
-        "randrw": settings["filter"][0],
+        "randrw": settings["filter"],
         "read": "read",
         "write": "write",
-        "rw": settings["filter"][0],
-        "readwrite": settings["filter"][0],
+        "rw": settings["filter"],
+        "readwrite": settings["filter"],
         "randread": "read",
         "randwrite": "write"
     }
     mode = mapping[settings["rw"]]
+    print(mode)
     return mode
 
 def get_json_mapping(mode, record):
@@ -145,12 +154,26 @@ def merge_job_data_hosts_jobs(settings, hosts, jobs):
     if hosts:
         returndata = merge_job_data_from_hosts(settings, hosts)
     elif jobs:
-        returndata = [merge_job_data(jobs)]
+        returndata = merge_job_data(jobs)
     return returndata
         
 
-
 def merge_job_data(jobs):
+    read_jobs = []
+    write_jobs = []
+    for j in jobs:
+        if j["type"] == "read":
+            read_jobs.append(j)
+        else:
+            write_jobs.append(j)
+    if len(read_jobs) > 0 and len(write_jobs) > 0:
+        return [merge_job_data_(read_jobs), merge_job_data_(write_jobs)]
+    if len(read_jobs) > 0:
+        return [merge_job_data_(read_jobs)]
+    if len(write_jobs) > 0:
+        return [merge_job_data_(write_jobs)]
+
+def merge_job_data_(jobs):
     iops = []
     bw = []
     lat = []

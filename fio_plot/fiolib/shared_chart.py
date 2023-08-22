@@ -110,64 +110,60 @@ def get_record_set_improved(settings, dataset, dataset_types):
     """The supplied dataset, a list of flat dictionaries with data is filtered based
     on the parameters as set by the command line. The filtered data is also scaled and rounded.
     """
-    mismatch = 0
-
-    if settings["rw"] == "randrw" or settings["rw"] == "readwrite":
-        if len(settings["filter"]) > 1 or not settings["filter"]:
-            print(
-                f"Since we are processing {settings['rw']} data, you must specify a"
-                " filter for either read or write data, not both."
-            )
-            exit(1)
-
     labels = []
     # This is mostly for debugging purposes.
     for record in dataset:
         record["label"] = dataimport.return_folder_name(record["directory"], settings)
         labels.append(record["label"])
 
-    datadict = {
-        "fio_version": [],
-        "iops_series_raw": [],
-        "iops_stddev_series_raw": [],
-        "lat_series_raw": [],
-        "lat_stddev_series_raw": [],
-        "cpu": {"cpu_sys": [], "cpu_usr": []},
-        "x_axis": labels,
-        "y1_axis": None,
-        "y2_axis": None,
-    }
+    ret = {}
+    for filter_type in settings["filter"]:
+        datadict = {
+            "fio_version": [],
+            "iops_series_raw": [],
+            "iops_stddev_series_raw": [],
+            "lat_series_raw": [],
+            "lat_stddev_series_raw": [],
+            "cpu": {"cpu_sys": [], "cpu_usr": []},
+            "x_axis": labels,
+            "y1_axis": None,
+            "y2_axis": None,
+        }
 
-    depth = settings["iodepth"][0]
-    numjobs = settings["numjobs"][0]
-    rw = settings["rw"]
-    for depth in dataset_types["iodepth"]:
-        for data in dataset:
-            # pprint.pprint(data.keys())
-            # pprint.pprint(data['directory'])
-            for record in data["data"]:
-                #pprint.pprint(record.keys())
-                #pprint.pprint(f"-> {record['type']}")
-                #print(f"{depth} - {record['iodepth']} + {numjobs} - {record['numjobs']} + {record['rw']} + {record['type']}")
-                #print(f"{settings['filter']}")
-                if (
-                    (int(record["iodepth"]) == int(depth))
-                    and int(record["numjobs"]) == int(numjobs)
-                    and record["rw"] == rw
-                    and record["type"] in settings["filter"]
-                ):
-                    datadict["fio_version"].append(record["fio_version"])
-                    datadict["iops_series_raw"].append(record["iops"])
-                    datadict["lat_series_raw"].append(record["lat"])
-                    datadict["iops_stddev_series_raw"].append(record["iops_stddev"])
-                    datadict["lat_stddev_series_raw"].append(record["lat_stddev"])
-                    datadict["cpu"]["cpu_sys"].append(int(round(record["cpu_sys"], 0)))
-                    datadict["cpu"]["cpu_usr"].append(int(round(record["cpu_usr"], 0)))
-                else:
-                    mismatch+=1
+        mismatch = 0
+        depth = settings["iodepth"][0]
+        numjobs = settings["numjobs"][0]
+        rw = settings["rw"]
+        for depth in dataset_types["iodepth"]:
+            for data in dataset:
+                # pprint.pprint(data.keys())
+                # pprint.pprint(data['directory'])
+                for record in data["data"]:
+                    #pprint.pprint(record.keys())
+                    #pprint.pprint(f"-> {record['type']}")
+                    #print(f"{depth} - {record['iodepth']} + {numjobs} - {record['numjobs']} + {record['rw']} + {record['type']}")
+                    #print(f"{settings['filter']}")
+                    if (
+                        (int(record["iodepth"]) == int(depth))
+                        and int(record["numjobs"]) == int(numjobs)
+                        and record["rw"] == rw
+                        and record["type"] == filter_type
+                    ):
+                        datadict["fio_version"].append(record["fio_version"])
+                        datadict["iops_series_raw"].append(record["iops"])
+                        datadict["lat_series_raw"].append(record["lat"])
+                        datadict["iops_stddev_series_raw"].append(record["iops_stddev"])
+                        datadict["lat_stddev_series_raw"].append(record["lat_stddev"])
+                        datadict["cpu"]["cpu_sys"].append(int(round(record["cpu_sys"], 0)))
+                        datadict["cpu"]["cpu_usr"].append(int(round(record["cpu_usr"], 0)))
+                    else:
+                        mismatch+=1
 
-    validate_get_record_set(settings, mismatch, dataset)
-    return scale_data(datadict)
+        # validate_get_record_set(settings, mismatch, dataset)
+        ret[filter_type] = scale_data(datadict)
+    # Note: this may have scaled the data differently for each filter type if
+    #       there were multiple of them.
+    return ret
 
 def return_empty_data_dict(settings, dataset_types):
     numjobs = settings["numjobs"]
@@ -203,14 +199,6 @@ def get_record_set(settings, dataset, dataset_types):
         
     rw = settings["rw"]
     mismatch = 0
-
-    if settings["rw"] == "randrw":
-        if len(settings["filter"]) > 1 or not settings["filter"]:
-            print(
-                "Since we are processing randrw data, you must specify a filter for either"
-                "read or write data, not both."
-            )
-            exit(1)
 
     datadict = return_empty_data_dict(settings, dataset_types)    
 

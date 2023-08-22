@@ -28,6 +28,7 @@ def handle_error(outputfile):
                     print(line)
 
 def run_raw_command(command, outputfile = None):
+    print(command)
     try: 
         result = subprocess.run(
             command, shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE

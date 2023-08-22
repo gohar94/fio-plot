@@ -66,11 +66,19 @@ def process_json_record(settings, directory, record, jsonrootpath, globaloptions
             if hostname not in hosts.keys():
                 hosts[hostname] = []
         row = jsonsupport.return_data_row(settings, job)  
-        row["fio_version"] = record["fio version"]
-        if hosts:
-            hosts[hostname].append(row)
+        if isinstance(row, list):
+            for r in row:
+                r["fio_version"] = record["fio version"]
+                if hosts:
+                    hosts[hostname].append(r)
+                else:
+                    jobs.append(r)
         else:
-            jobs.append(row)
+                row["fio_version"] = record["fio version"]
+                if hosts:
+                    hosts[hostname].append(row)
+                else:
+                    jobs.append(row)
           
     directory["data"].extend(jsonsupport.merge_job_data_hosts_jobs(settings, hosts, jobs))
 

@@ -117,6 +117,7 @@ def get_colors(settings):
 
 
 def drawline(settings, item, rw, supportdata):
+    print(rw)
     axes = supportdata["axes"]
     if settings["enable_markers"]:
         marker_value = supportdata["marker_list"].pop(0)
@@ -140,6 +141,9 @@ def drawline(settings, item, rw, supportdata):
     # Plotting the line
     #
     
+
+    print(xvalues)
+    print(yvalues)
     dataplot = f"{item['type']}_plot"
     color = get_color(settings, supportdata)
     axes[dataplot] = axes[item["type"]].plot(

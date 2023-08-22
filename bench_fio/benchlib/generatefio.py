@@ -7,7 +7,7 @@ def write_fio_job_file(tmpjobfile, parser):
         with open(tmpjobfile, 'w') as configfile:
             parser.write(configfile, space_around_delimiters=False)
     except IOError:
-        print(f"Failed to write temporary Fio job file at tmpjobfile")
+        print(f"Failed to write temporary Fio job file at tmpjobfile: {tmpjobfile}")
 
 def filter_options(settings, config, mapping, benchmark, output_directory):
     boolean = {"True": 1, "False": 0}

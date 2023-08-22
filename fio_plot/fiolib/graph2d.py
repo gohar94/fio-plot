@@ -106,6 +106,8 @@ def chart_2d_log_data(settings, dataset):
     for item in data["dataset"]:
         for rw in settings["filter"]:
             if isinstance(item[rw], dict):
+                if settings["draw_total"] and rw != "total":
+                    continue
                 if supporting.filter_hosts(settings, item):
                     support2d.drawline(settings, item, rw, supportdata)
 
